@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	utils "study-session/utils/go"
+	utils "study-session-architect/utils/go"
 )
 
 // loadGrepTestData は入力ファイルと期待値ファイルを読み込む

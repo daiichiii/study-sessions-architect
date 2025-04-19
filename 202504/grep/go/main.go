@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	impl "study-session/grep/go/impl"
+	impl "study-session-architect/grep/go/impl"
 )
 
 // ===============================================
