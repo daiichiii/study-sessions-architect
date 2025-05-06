@@ -52,23 +52,38 @@ func NewHashMap(bucketSize int) *HashMapImplementation {
 
 // hashKey はキーのハッシュ値を計算する
 func (h *HashMapImplementation) hashKey(key string) int {
-	// 多項式ハッシュ関数を実装
-	// 素数を使用してより良い分散を得る
-	const prime = 31
-	hash := 0
+	// FNV-1aハッシュ関数を実装
+	// FNVオフセットベースとFNVプライム
+	const (
+		offsetBasis = 2166136261 // FNV-1a 32bit用オフセットベース
+		fnvPrime    = 16777619   // FNV-1a 32bit用プライム
+	)
 
-	// 各文字のASCII値を使用してハッシュ値を計算
+	// FNV-1aアルゴリズムを使用してハッシュ値を計算
+	hash := uint32(offsetBasis)
 	for i := 0; i < len(key); i++ {
-		hash = (hash*prime + int(key[i])) % h.bucketSize
+		hash ^= uint32(key[i]) // XOR操作
+		hash *= fnvPrime       // 乗算操作
 	}
 
-	return hash
+	// バケットサイズに合わせてハッシュ値を調整
+	return int(hash % uint32(h.bucketSize))
+}
+
+// convertKey はキーをハッシュマップで使用する文字列に変換する
+func (h *HashMapImplementation) convertKey(key interface{}) string {
+	// 文字列型の場合はそのまま返す
+	if strKey, ok := key.(string); ok {
+		return strKey
+	}
+	// その他の型はfmt.Sprintfを使用
+	return fmt.Sprintf("%v", key)
 }
 
 // Put はキーと値のペアを格納する
 func (h *HashMapImplementation) Put(key, value interface{}) {
-	// キーを文字列に変換
-	strKey := fmt.Sprintf("%v", key)
+	// キーを文字列に変換（最適化された方法）
+	strKey := h.convertKey(key)
 
 	// 負荷係数をチェックし、必要に応じてリサイズ
 	if float64(h.size)/float64(h.bucketSize) >= h.loadFactor {
@@ -94,8 +109,8 @@ func (h *HashMapImplementation) Put(key, value interface{}) {
 
 // Get はキーに対応する値を取得する
 func (h *HashMapImplementation) Get(key interface{}) (interface{}, bool) {
-	// キーを文字列に変換
-	strKey := fmt.Sprintf("%v", key)
+	// キーを文字列に変換（最適化された方法）
+	strKey := h.convertKey(key)
 
 	// キーのハッシュ値を計算
 	index := h.hashKey(strKey)
@@ -113,8 +128,8 @@ func (h *HashMapImplementation) Get(key interface{}) (interface{}, bool) {
 
 // Remove はキーに対応するエントリを削除する
 func (h *HashMapImplementation) Remove(key interface{}) bool {
-	// キーを文字列に変換
-	strKey := fmt.Sprintf("%v", key)
+	// キーを文字列に変換（最適化された方法）
+	strKey := h.convertKey(key)
 
 	// キーのハッシュ値を計算
 	index := h.hashKey(strKey)
@@ -123,8 +138,14 @@ func (h *HashMapImplementation) Remove(key interface{}) bool {
 	entries := h.buckets[index].entries
 	for i, e := range entries {
 		if e.key == strKey {
-			// エントリを削除（スライスから要素を削除）
-			h.buckets[index].entries = append(entries[:i], entries[i+1:]...)
+			// 最後の要素と入れ替えて削除（O(1)の操作）
+			lastIdx := len(entries) - 1
+			if i != lastIdx {
+				// 削除する要素が最後でない場合は入れ替え
+				entries[i] = entries[lastIdx]
+			}
+			// スライスを縮小（再割り当てなし）
+			h.buckets[index].entries = entries[:lastIdx]
 			h.size--
 			return true
 		}
@@ -146,19 +167,17 @@ func (h *HashMapImplementation) resize() {
 		h.buckets[i] = &bucket{entries: make([]*entry, 0)}
 	}
 
-	// サイズをリセット（Put操作で再カウント）
-	oldSize := h.size
-	h.size = 0
-
-	// 古いバケットからすべてのエントリを新しいバケットに再配置
+	// 古いバケットからすべてのエントリを新しいバケットに直接再配置
 	for _, bucket := range oldBuckets {
 		for _, e := range bucket.entries {
-			h.Put(e.key, e.value)
+			// キーのハッシュ値を再計算
+			index := h.hashKey(e.key)
+			// 新しいバケットに直接追加
+			h.buckets[index].entries = append(h.buckets[index].entries, e)
 		}
 	}
 
-	// サイズを復元（Put操作で重複カウントを防ぐため）
-	h.size = oldSize
+	// サイズは変更しない（エントリ数は同じ）
 }
 
 // Size は現在の要素数を取得する

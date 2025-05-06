@@ -5,6 +5,42 @@
     { "action": "get", "key": "test" },
     { "action": "remove", "key": "test" },
     { "action": "get", "key": "test" },
+    
     { "action": "put", "key": "", "value": 100 },
-    { "action": "get", "key": "" }
+    { "action": "get", "key": "" },
+    
+    { "action": "put", "key": "null", "value": 200 },
+    { "action": "get", "key": "null" },
+    
+    { "action": "put", "key": 0, "value": 300 },
+    { "action": "get", "key": 0 },
+    { "action": "get", "key": "0" },
+    
+    { "action": "put", "key": true, "value": 400 },
+    { "action": "get", "key": true },
+    { "action": "get", "key": "true" },
+    
+    { "action": "put", "key": "[object Object]", "value": 500 },
+    { "action": "get", "key": "[object Object]" },
+    
+    { "action": "put", "key": "[]", "value": 600 },
+    { "action": "get", "key": "[]" },
+    
+    { "action": "put", "key": "特殊文字!@#$%^&*()", "value": 700 },
+    { "action": "get", "key": "特殊文字!@#$%^&*()" },
+    
+    { "action": "put", "key": "非常に長いキー非常に長いキー非常に長いキー", "value": 800 },
+    { "action": "get", "key": "非常に長いキー非常に長いキー非常に長いキー" },
+    
+    { "action": "put", "key": 1, "value": { "nestedKey": "nestedValue" } },
+    { "action": "get", "key": 1 },
+    
+    { "action": "put", "key": "unicode", "value": "あいうえおアイウエオ" },
+    { "action": "get", "key": "unicode" },
+    
+    { "action": "put", "key": "emoji", "value": "😀😁😂😃" },
+    { "action": "get", "key": "emoji" },
+    
+    { "action": "put", "key": "control_chars", "value": "\t\n\r" },
+    { "action": "get", "key": "control_chars" }
 ]
