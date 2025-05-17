@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 )
 
 // GrepImplementation はGrepの基本実装を提供する
@@ -20,19 +21,60 @@ func (g *GrepImplementation) Search(filePath, pattern string) []string {
 	}
 	defer f.Close()
 
-	// 完全に異なるアプローチを使用: 単純なスキャンと直接マッチ
-	var matches []string
+	// まず全ての行を読み込む
+	var lines []string
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, pattern) {
-			matches = append(matches, line)
-		}
+		lines = append(lines, scanner.Text())
 	}
-
 	if err := scanner.Err(); err != nil {
 		log.Printf("failed to scan file %s: %v", filePath, err)
+		return nil
 	}
 
-	return matches
+	// 並列処理のためのワーカー数を定義
+	workerCount := 4 // 並列ワーカー数（CPUコア数などに応じて調整可能）
+
+	// 結果を格納するスライス
+	results := make([]string, 0, len(lines)/2) // 容量は適当に見積もる
+	var mutex sync.Mutex
+
+	// 処理を分割
+	chunkSize := (len(lines) + workerCount - 1) / workerCount
+	if chunkSize < 1 {
+		chunkSize = 1
+	}
+
+	// ワーカーの終了を待つためのWaitGroup
+	var wg sync.WaitGroup
+
+	// 各ワーカーに作業を分配
+	for i := 0; i < len(lines); i += chunkSize {
+		wg.Add(1)
+		go func(start int) {
+			defer wg.Done()
+			end := start + chunkSize
+			if end > len(lines) {
+				end = len(lines)
+			}
+
+			// このワーカーの担当範囲の行を処理
+			var localMatches []string
+			for j := start; j < end; j++ {
+				if strings.Contains(lines[j], pattern) {
+					localMatches = append(localMatches, lines[j])
+				}
+			}
+
+			// 結果をマージ（スレッドセーフに）
+			mutex.Lock()
+			results = append(results, localMatches...)
+			mutex.Unlock()
+		}(i)
+	}
+
+	// すべてのワーカーが完了するのを待つ
+	wg.Wait()
+
+	return results
 }
