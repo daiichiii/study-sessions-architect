@@ -21,6 +21,7 @@ func (g *GrepImplementation) Search(filePath, pattern string) []string {
 	}
 	defer f.Close()
 
+<<<<<<< HEAD
 	// まず全ての行を読み込む
 	var lines []string
 	scanner := bufio.NewScanner(f)
@@ -77,4 +78,21 @@ func (g *GrepImplementation) Search(filePath, pattern string) []string {
 	wg.Wait()
 
 	return results
+=======
+	// 完全に異なるアプローチを使用: 単純なスキャンと直接マッチ
+	var matches []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, pattern) {
+			matches = append(matches, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("failed to scan file %s: %v", filePath, err)
+	}
+
+	return matches
+>>>>>>> 90cc7d8a4621b9746a8e6dae673894420d29372e
 }
