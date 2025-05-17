@@ -12,30 +12,27 @@ type GrepImplementation struct{}
 
 // Search はファイルから特定のパターンを検索する
 func (g *GrepImplementation) Search(filePath, pattern string) []string {
-	var result []string
-
 	// ファイルを開く
 	f, err := os.Open(filePath)
 	if err != nil {
 		log.Printf("failed to open file %s: %v", filePath, err)
-		return result
+		return nil
 	}
 	defer f.Close()
 
-	// 行単位でスキャン
+	// 完全に異なるアプローチを使用: 単純なスキャンと直接マッチ
+	var matches []string
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		// パターンが含まれているか判定
 		if strings.Contains(line, pattern) {
-			result = append(result, line)
+			matches = append(matches, line)
 		}
 	}
 
-	// スキャン時のエラーがあればログに出す
 	if err := scanner.Err(); err != nil {
-		log.Printf("failed to read file %s: %v", filePath, err)
+		log.Printf("failed to scan file %s: %v", filePath, err)
 	}
 
-	return result
+	return matches
 }
